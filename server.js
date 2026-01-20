@@ -10,7 +10,11 @@ app.post("/chat", async (req, res) => {
   try {
     const userMessage = req.body.message;
 
-    const response = await fetch(
+    if (!userMessage) {
+      return res.json({ reply: "Моля, напишете съобщение." });
+    }
+
+    const openaiResponse = await fetch(
       "https://api.openai.com/v1/chat/completions",
       {
         method: "POST",
@@ -24,22 +28,32 @@ app.post("/chat", async (req, res) => {
             {
               role: "system",
               content:
-                "Ти си виртуален консултант на бизнес. Отговаряй ясно и помагай."
+                "Ти си AI бизнес консултант. Отговаряй ясно, професионално и полезно."
             },
             { role: "user", content: userMessage }
-          ]
+          ],
+          temperature: 0.7
         })
       }
     );
 
-    const data = await response.json();
-    res.json({ reply: data.choices[0].message.content });
+    const data = await openaiResponse.json();
 
-  } catch (err) {
-    res.status(500).json({ error: "AI грешка" });
+    // 🔒 Защита срещу undefined
+    const reply =
+      data?.choices?.[0]?.message?.content ||
+      "В момента не мога да отговоря. Опитай отново.";
+
+    res.json({ reply });
+
+  } catch (error) {
+    console.error(error);
+    res.json({
+      reply: "Възникна техническа грешка. Моля, опитай по-късно."
+    });
   }
 });
 
 app.listen(3000, () => {
-  console.log("Сървърът работи на http://localhost:3000");
+  console.log("AI backend работи на порт 3000");
 });
